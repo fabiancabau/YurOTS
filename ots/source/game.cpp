@@ -1103,8 +1103,11 @@ void Game::thingMove(Creature *creature, Thing *thing,
 
 	if (fromTile)
 	{
+		const Position from = thing->pos;
 		int oldstackpos = fromTile->getThingStackPos(thing);
 		thingMoveInternal(creature, thing->pos.x, thing->pos.y, thing->pos.z, oldstackpos, 0, to_x, to_y, to_z, count);
+		if(creature == thing && dynamic_cast<Player*>(creature))
+			creature->recordStep(from);
 	}
 }
 
@@ -1127,7 +1130,10 @@ void Game::thingMove(Creature *creature, unsigned short from_x, unsigned short f
 	if(item && (item->getID() != itemid || item != fromTile->getTopDownItem()))
 		return;
 
+	const Position from = thing->pos;
 	thingMoveInternal(creature, from_x, from_y, from_z, stackPos, itemid, to_x, to_y, to_z, count);
+	if(creature == thing && dynamic_cast<Player*>(creature))
+		creature->recordStep(from);
 }
 
 //container/inventory to container/inventory
@@ -3720,6 +3726,10 @@ void Game::checkPlayerWalk(unsigned long id)
 
 	if(!player)
 		return;
+	if(player->pathlist.empty()) {
+		player->eventAutoWalk = 0;
+		return;
+	}
 
 	Position pos = player->pos;
 	Direction dir = player->pathlist.front();
@@ -3762,9 +3772,14 @@ void Game::checkPlayerWalk(unsigned long id)
 #endif
 */
 
-	player->lastmove = OTSYS_TIME();
+	const Position from = player->pos;
 	this->thingMove(player, player, pos.x, pos.y, pos.z, 1);
 	flushSendBuffers();
+	if(player->pos == from) {
+		player->pathlist.clear();
+		player->eventAutoWalk = 0;
+		return;
+	}
 
 	if(!player->pathlist.empty()) {
 		int ticks = (int)player->getSleepTicks();
@@ -4270,11 +4285,14 @@ void Game::playerAutoWalk(Player* player, std::list<Direction>& path)
 	OTSYS_THREAD_LOCK_CLASS lockClass(gameLock, "Game::playerAutoWalk()");
 
 	stopEvent(player->eventAutoWalk);
+	player->eventAutoWalk = 0;
 
 	if(player->isRemoved)
 		return;
 
 	player->pathlist = path;
+	if(path.empty())
+		return;
 	int ticks = (int)player->getSleepTicks();
 /*
 #ifdef __DEBUG__

@@ -54,3 +54,17 @@ User reported sprite clipping and a brief apparent underground step on the roof 
 - Added raster-order and interpolation regressions covering all eight directions, foreground walls, upper-floor occlusion and map-replacement reset.
 - Seventeen focused tests pass, including in a clean exported client snapshot without the separate in-progress movement-queue edits.
 - Rendering commit 4064cb7 pushed. Updated only served render files and floor-reset handling in the running localhost:8080 client, preserving active game connections and concurrent movement work. Exact live rooftop/stair reproduction passed after the update; user can reload when ready.
+
+## Responsive movement queue and wall recovery
+
+User request: make movement smooth when directions are queued or the player hits a wall.
+
+- Found independent client/server causes: rejected server moves spent a cooldown; client callbacks could clear a newer pending move after one second; keyboard selection preferred the oldest held key and dropped quick taps; nominal timing ignored terrain.
+- Added a controller with one authoritative request in flight, latest-intent buffering, most-recent held-key priority, deferred click path planning, collision preflight, bounded dynamic-blocker retries, and explicit cancellation ordering.
+- Server cooldown now records successful self-movement only; diagonals retain double cost after movement, and blocked native auto-walk stops its remaining route.
+- Testing in disposable worlds on ports 7172/7173, with gateways 8082/8083. The original server measured a 282ms delay to turn away after a rejected wall step. Added deterministic controller/protocol regression tests; live checks are in progress.
+- Final live regression passed: raw wall-to-turn recovery 4.6ms versus the original 282ms; normal cardinal cooldown ~288ms and diagonal cooldown ~580ms remain enforced. Visible-wall turns responded in ~15ms without sending blocked walk packets.
+- Verified quick taps, overlapping held keys, release/no extra steps, keyboard interruption of click paths, Escape, numpad diagonals, native blocked/empty paths, and 1250ms delayed network replies with only one request in flight. No browser errors.
+- 33 Node tests pass (16 new movement regressions). Server image builds successfully. Ran the skill Playwright runner with local login setup; real single-step stairs changed 141,73,6 -> 141,75,7 and back to 141,73,6. Screenshots inspected; pending/buffered movement empty after each step.
+- Saved the active local world with a confirmed `/save`, rebuilt both Compose images, and updated localhost:8080. The running server SHA-256 matches the isolated tested binary. A fresh deployed-browser login, keyboard move, empty pending/buffered state and logout passed; screenshot inspected, no errors. Changes remain local and uncommitted.
+- Stopped the disposable test worlds and gateways. No remaining movement task TODOs; reproduce with `client/tests/movement-live.mjs` and the documented isolated temple fixture.

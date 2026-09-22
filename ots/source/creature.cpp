@@ -66,6 +66,7 @@ access(0)
 	healthmax  = 1000;//150;
 	//experience = 100000;
 	lastmove=0;
+	lastStepCost=1;
 
 	inFightTicks = 0;
 	inFightTicks = 0;
@@ -316,13 +317,23 @@ int Creature::getStepDuration() const
 long long Creature::getSleepTicks() const
 {
 	long long delay = 0;
-	int stepDuration = getStepDuration();
+	int stepDuration = getStepDuration() * lastStepCost;
 
 	if(lastmove != 0) {
 		delay = (((long long)(lastmove)) + ((long long)(stepDuration))) - ((long long)(OTSYS_TIME()));
 	}
 
 	return delay;
+}
+
+void Creature::recordStep(const Position& from)
+{
+	// Failed moves do not spend a step or extend the previous cooldown.
+	if(pos == from)
+		return;
+
+	lastmove = OTSYS_TIME();
+	lastStepCost = (pos.z == from.z && abs(pos.x - from.x) == 1 && abs(pos.y - from.y) == 1) ? 2 : 1;
 }
 
 
