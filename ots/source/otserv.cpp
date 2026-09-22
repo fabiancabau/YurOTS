@@ -72,7 +72,7 @@
 
 	/* Comment below line if you want to execute otserv with root user (NOT RECOMMENDED) */
 	#define _NO_ROOT_PERMISSION_
-	#define _HOMEDIR_CONF_
+	// Use config.lua in the working directory, matching the Windows build.
 	
 	extern int errno; 
 #endif
@@ -156,7 +156,7 @@ bool isclientBanished(SOCKET s)
 
 	if (getpeername(s, (sockaddr*)&sain, &salen) == 0)
 	{
-		unsigned long clientip = *(unsigned long*)&sain.sin_addr;
+		unsigned long clientip = sain.sin_addr.s_addr;
 
 		for (size_t i = 0; i < bannedIPs.size(); ++i) {
       if ((bannedIPs[i].first & bannedIPs[i].second) == (clientip & bannedIPs[i].second))
@@ -198,6 +198,7 @@ OTSYS_THREAD_RETURN ConnectionHandler(void *dat)
 	srand((unsigned)time(NULL));
 
 	SOCKET s = *(SOCKET*)dat;
+	delete static_cast<SOCKET*>(dat);
 
 	NetworkMessage msg;
 	if (msg.ReadFromSocket(s))
@@ -217,7 +218,7 @@ OTSYS_THREAD_RETURN ConnectionHandler(void *dat)
 			socklen_t salen = sizeof(sockaddr_in);
 			if (getpeername(s, (sockaddr*)&sain, &salen) == 0)
 			{
-				unsigned long clientip = *(unsigned long*)&sain.sin_addr;
+				unsigned long clientip = sain.sin_addr.s_addr;
 				for (unsigned int i = 0; i < serverIPs.size(); i++)
 					if ((serverIPs[i].first & serverIPs[i].second) == (clientip & serverIPs[i].second))
 					{
@@ -774,7 +775,7 @@ int main(int argc, char *argv[])
 				<< (unsigned int)(addr[0][2]) << "."
 				<< (unsigned int)(addr[0][3]) << "  ";
 
-			IpNetMask.first  = *(unsigned long*)(*addr);
+			IpNetMask.first  = *(uint32_t*)(*addr);
 			IpNetMask.second = 0x0000FFFF;
 			serverIPs.push_back(IpNetMask);
 
@@ -874,7 +875,7 @@ int main(int argc, char *argv[])
 			tv.tv_sec = 1;
 			tv.tv_usec = 0;
 
-			int reads = select(1, &listen_set, NULL, NULL, &tv);
+			int reads = select(listen_socket + 1, &listen_set, NULL, NULL, &tv);
 			int errnum;
 #ifdef WIN32
 			errnum = WSAGetLastError();
@@ -891,7 +892,7 @@ int main(int argc, char *argv[])
 
 			SOCKET s = accept(listen_socket, NULL, NULL); // accept a new connection
 			if(s > 0){
-				OTSYS_CREATE_THREAD(ConnectionHandler, (void*)&s);
+				OTSYS_CREATE_THREAD(ConnectionHandler, new SOCKET(s));
 			}
 			else{
 					accept_errors++;

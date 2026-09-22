@@ -252,11 +252,7 @@ SpellScript::SpellScript(const std::string &datadir, std::string scriptname, Spe
 	if(scriptname == "")
 		return;
 	luaState = lua_open();
-	luaopen_loadlib(luaState);
-	luaopen_base(luaState);
-	luaopen_math(luaState);
-	luaopen_string(luaState);
-	luaopen_io(luaState);
+	luaL_openlibs(luaState);
     lua_dofile(luaState, std::string(datadir + "spells/lib/spells.lua").c_str());
 
 #ifdef USING_VISUAL_2005
@@ -273,7 +269,8 @@ SpellScript::SpellScript(const std::string &datadir, std::string scriptname, Spe
 	lua_dofile(luaState, scriptname.c_str());
 	this->loaded=true;
 	this->spell=spell;
-	this->setGlobalNumber("addressOfSpell", (int)spell);
+	lua_pushlightuserdata(luaState, spell);
+	lua_setglobal(luaState, "addressOfSpell");
 	this->registerFunctions();
 }
 
@@ -331,9 +328,8 @@ bool SpellScript::castSpell(Creature* creature, const Position& pos, std::string
 
 Spell* SpellScript::getSpell(lua_State *L) {
 	lua_getglobal(L, "addressOfSpell");
-	int val = (int)lua_tonumber(L, -1);
-	lua_pop(L,1);
-	Spell* myspell = (Spell*)val;
+	Spell* myspell = static_cast<Spell*>(lua_touserdata(L, -1));
+	lua_pop(L, 1);
 
 	if(!myspell){
 		return 0;

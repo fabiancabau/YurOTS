@@ -56,43 +56,35 @@ void NetworkMessage::Reset()
 
 /******************************************************************************/
 
+// TCP is a byte stream: neither the header nor payload must arrive in one recv.
+static bool receiveExactly(SOCKET socket, unsigned char* data, int length)
+{
+    int offset = 0;
+    while (offset < length) {
+        int count = recv(socket, reinterpret_cast<char*>(data + offset), length - offset, 0);
+        if (count <= 0) {
+#if defined WIN32 || defined __WINDOWS__
+            if (count < 0 && WSAGetLastError() == WSAEINTR) continue;
+#else
+            if (count < 0 && errno == EINTR) continue;
+#endif
+            return false;
+        }
+        offset += count;
+    }
+    return true;
+}
+
 bool NetworkMessage::ReadFromSocket(SOCKET socket)
 {
-	// just read the size to avoid reading 2 messages at once
-	m_MsgSize = recv(socket, (char*)m_MsgBuf, 2, 0);
-	
-	// for now we expect 2 bytes at once, it should not be splitted
-	int datasize = m_MsgBuf[0] | m_MsgBuf[1] << 8;
-	if((m_MsgSize != 2) || (datasize > NETWORKMESSAGE_MAXSIZE-2)){
-		int errnum;
-#if defined WIN32 || defined __WINDOWS__
-		errnum = ::WSAGetLastError();
-		if(errnum == EWOULDBLOCK){
-			m_MsgSize = 0;
-			return true;
-		}
-#else
-		errnum = errno;
-#endif
-
-		Reset();
-		return false;
-	}
-
-	// read the real data
-	m_MsgSize += recv(socket, (char*)m_MsgBuf+2, datasize, 0);
-
-	// we got something unexpected/incomplete
-	if ((m_MsgSize <= 2) || ((m_MsgBuf[0] | m_MsgBuf[1] << 8) != m_MsgSize-2))
-	{
-		Reset();
-		return false;
-	}
-
-	// ok, ...reading starts after the size
-	m_ReadPos = 2;
-
-	return true;
+    Reset();
+    if (!receiveExactly(socket, m_MsgBuf, 2)) return false;
+    int size = m_MsgBuf[0] | m_MsgBuf[1] << 8;
+    if (size < 1 || size > NETWORKMESSAGE_MAXSIZE - 2) return false;
+    if (!receiveExactly(socket, m_MsgBuf + 2, size)) { Reset(); return false; }
+    m_MsgSize = size + 2;
+    m_ReadPos = 2;
+    return true;
 }
 
 

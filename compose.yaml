@@ -1,0 +1,21 @@
+services:
+  server:
+    build: .
+    image: yurots-local
+    ports:
+      - "127.0.0.1:7171:7171"
+    volumes:
+      - world:/var/lib/yurots
+    restart: unless-stopped
+  client:
+    build: ./client
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      YUROTS_HOST: server
+      YUROTS_PORT: 7171
+    depends_on:
+      - server
+    restart: unless-stopped
+volumes:
+  world:

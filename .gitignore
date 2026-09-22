@@ -82,3 +82,7 @@ ots\\source\\devcpp\\otserv.layout
 *.depend
 *.map
 *.layout
+
+# Local server state and browser verification outputs
+.runtime/
+artifacts/

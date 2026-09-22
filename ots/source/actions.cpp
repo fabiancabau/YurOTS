@@ -434,11 +434,7 @@ _player(NULL)
 	if(scriptname == "")
 		return;
 	luaState = lua_open();
-	luaopen_loadlib(luaState);
-	luaopen_base(luaState);
-	luaopen_math(luaState);
-	luaopen_string(luaState);
-	luaopen_io(luaState);
+	luaL_openlibs(luaState);
     lua_dofile(luaState, std::string(datadir + "actions/lib/actions.lua").c_str());
 
 #ifdef USING_VISUAL_2005
@@ -454,7 +450,8 @@ _player(NULL)
 	else
 		fclose(in);
 	lua_dofile(luaState, scriptname.c_str());
-	this->setGlobalNumber("addressOfActionScript", (int)this);
+	lua_pushlightuserdata(luaState, this);
+	lua_setglobal(luaState, "addressOfActionScript");
 	this->loaded = true;
 	this->registerFunctions();
 }
@@ -716,8 +713,8 @@ int ActionScript::registerFunctions()
 
 ActionScript* ActionScript::getActionScript(lua_State *L){
 	lua_getglobal(L, "addressOfActionScript");
-	int val = (int)internalGetNumber(L);
-	ActionScript* myaction = (ActionScript*)val;
+	ActionScript* myaction = static_cast<ActionScript*>(lua_touserdata(L, -1));
+	lua_pop(L, 1);
 	if(!myaction){
 		return 0;
 	}

@@ -42,8 +42,10 @@ int LuaScript::OpenFile(const char *filename)
 {
 	luaState = lua_open();
 
-	if (lua_dofile(luaState, filename))
+	if (lua_dofile(luaState, filename)) {
+		std::cerr << "Lua config error: " << lua_tostring(luaState, -1) << std::endl;
 		return false;
+	}
 
 #ifdef YUR_MULTIPLIERS
 	EXP_MUL = getGlobalNumber("expmul",1);

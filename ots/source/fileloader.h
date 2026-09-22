@@ -76,7 +76,7 @@ protected:
 	inline bool safeTell(long &pos);
 	//inline bool writeData(void* data, int size, bool unescape);
 public:
-	inline bool FileLoader::writeData(const void* data, int size, bool unescape){
+	inline bool writeData(const void* data, int size, bool unescape){
 		for(int i = 0; i < size; ++i) {
 			unsigned char c = *(((unsigned char*)data) + i);
 			if(unescape && (c == NODE_START || c == NODE_END || c == ESCAPE_CHAR)) {
@@ -145,13 +145,17 @@ public:
 		if(size() < sizeof(T)){
 			return false;
 		}
-		ret = *((T*)p);
+		memcpy(&ret, p, sizeof(T));
 		p = p + sizeof(T);
 		return true;
 	}
 	
+	// OTB/OTBM ULONG fields remain 32-bit on LP64 hosts.
 	inline bool GET_ULONG(unsigned long &ret){
-		return GET_VALUE(ret);
+		uint32_t value;
+		if (!GET_VALUE(value)) return false;
+		ret = value;
+		return true;
 	}
 	
 	inline bool GET_USHORT(unsigned short &ret){

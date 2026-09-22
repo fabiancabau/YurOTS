@@ -68,7 +68,7 @@ bool FileLoader::openFile(const char* filename, bool write, bool caching /*= fal
 		m_file = fopen(filename, "wb");
 #endif //USING_VISUAL_2005
 		if(m_file) {
-				unsigned long version = 0;
+				uint32_t version = 0;
 				writeData(&version, sizeof(version), false);
 				return true;
 		}
@@ -78,7 +78,7 @@ bool FileLoader::openFile(const char* filename, bool write, bool caching /*= fal
 		}
 	}
 	else {
-		unsigned long version;
+		uint32_t version;
 #ifdef USING_VISUAL_2005
 		m_file = NULL;
 		fopen_s(&m_file, filename, "rb");
@@ -86,7 +86,7 @@ bool FileLoader::openFile(const char* filename, bool write, bool caching /*= fal
 		m_file = fopen(filename, "rb");
 #endif //USING_VISUAL_2005
 		if(m_file){
-			fread(&version, sizeof(unsigned long), 1, m_file);
+			fread(&version, sizeof(version), 1, m_file);
 			if(version > 0){
 				fclose(m_file);
 				m_lastError = ERROR_INVALID_FILE_VERSION;

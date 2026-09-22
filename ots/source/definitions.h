@@ -24,7 +24,9 @@
 
 
 
+#if defined __WINDOWS__ || defined WIN32
 typedef unsigned long long uint64_t;
+#endif
 
 #ifdef XML_GCC_FREE
 #define xmlFreeOTSERV(s)	free(s)
