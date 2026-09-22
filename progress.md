@@ -68,3 +68,23 @@ User request: make movement smooth when directions are queued or the player hits
 - 33 Node tests pass (16 new movement regressions). Server image builds successfully. Ran the skill Playwright runner with local login setup; real single-step stairs changed 141,73,6 -> 141,75,7 and back to 141,73,6. Screenshots inspected; pending/buffered movement empty after each step.
 - Saved the active local world with a confirmed `/save`, rebuilt both Compose images, and updated localhost:8080. The running server SHA-256 matches the isolated tested binary. A fresh deployed-browser login, keyboard move, empty pending/buffered state and logout passed; screenshot inspected, no errors. Changes remain local and uncommitted.
 - Stopped the disposable test worlds and gateways. No remaining movement task TODOs; reproduce with `client/tests/movement-live.mjs` and the documented isolated temple fixture.
+
+
+## Party instanced auto-hunts
+
+User request: list available hunts, create private party instances (solo initially), and automatically hunt their spawns using the supplied Huntera catalog/detail references.
+
+- Implemented server HuntManager in hunts.h/cpp: 247 real spawn-area definitions, reserved-coordinate map copies, party membership/access guards, server movement/targeting/combat/healing, capped pulls, native respawn timers, actual corpse loot transfer, pause/manual override/leave/disconnect cleanup, safe persisted return position.
+- Added authenticated 0xF0 command/state extension and hunt UI with search/favorites, creature/loot details, pull size, autoloot, and active hunt controls. Preserved pre-existing movement-controller edits in client checkout.
+- Disposable server yurots-hunts-test on7174 and preview gateway8084. Original localhost8080/7171 remains untouched during implementation.
+- First live rat hunt passed: all247catalog entries, private coordinates, autonomous movement,2kills/100XP and real loot; pause/resume/return worked with no browser errors. Fixed collapsed catalog CSS tracks and monster icon framing after screenshot inspection.
+- In progress: all-area validation, multi-player isolation/party joining, cleanup and save/reconnect checks, final docs/deployment.
+- Full catalog validation passed: 247 areas, 0 failures, 1,136,106 temporary tiles cloned/cleaned. Improved connected-terrain selection for five isolated/blocked source spawn areas.
+- Live isolation passed: distinct solo instances and monster IDs; authenticated party members share one instance; outsider GM teleport blocked; autosave stores public return coordinates; last-member cleanup returns allocated rooms/tiles/monsters to zero; reconnect restores the original position.
+- A full original 60-second respawn cycle passed (4 kills, 200 XP), with pause/resume/leave continuing to work. Earlier runs verified actual loot transfer; a full backpack correctly leaves later drops in corpses.
+- Death and explicit logout passed in the disposable world: hunt ends, private resources clean up, and the character returns to the temple/public world on login.
+- Standard develop-web-game action/screenshot loop passed with real auto-kills and native server state. Catalog, detail and hunting screenshots inspected. Thirty-six Node regressions pass with the existing movement tests included.
+- Preserved the completed movement controller as separate client commit 37bae91 before the hunt changes so the new client remains reproducible.
+- Saved the live world through an authenticated `/save`, then updated Compose server/client. The deployed server binary SHA-256 matches the isolated tested binary (cd11e2aa1c7ca69854298c7c50a1e91b536d9f0376ef40b853ec70fa7a8717df).
+- Deployed localhost:8080 smoke passed with the separate HUD Verification character: all 247 hunts, private Rat Cellars, 2 kills / 100 XP / 4 items, pause/resume and exact return position. No browser errors.
+- Client hunt commit ee591c0 builds on the separately preserved movement commit37bae91. HUNTS.md documents semantics, limits and repeatable verification.

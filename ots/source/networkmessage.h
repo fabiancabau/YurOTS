@@ -79,6 +79,8 @@ public:
 	void AddItemId(const Item *item);
   void AddCreature(const Creature *creature, bool known, unsigned int remove);
 
+  int getRemaining() const { return m_MsgSize - m_ReadPos; }
+
   int getMessageLength(){
       return m_MsgSize;
       }

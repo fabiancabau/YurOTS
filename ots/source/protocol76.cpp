@@ -29,6 +29,7 @@
 #include <limits>
 #include "networkmessage.h"
 #include "protocol76.h"
+#include "hunts.h"
 
 #include "items.h"
 
@@ -97,6 +98,7 @@ void Protocol76::ReceiveLoop()
 			parsePacket(msg);
 		}
 
+		if(player->huntInstance && !player->isRemoved) g_hunts.leave(player, "Connection closed");
 		if(s){
 			closesocket(s);
 			s = 0;
@@ -124,6 +126,9 @@ void Protocol76::parsePacket(NetworkMessage &msg)
 		return;
 
 	uint8_t recvbyte = msg.GetByte();
+	if(recvbyte == 0xF0) { if(!player->isRemoved) g_hunts.request(player, msg); return; }
+	if ((recvbyte >= 0x64 && recvbyte <= 0x72) || recvbyte == 0xA1 || recvbyte == 0xBE)
+		g_hunts.manualInput(player);
 	//a dead player can not performs actions
 	if (player->isRemoved == true && recvbyte != 0x14) {
 		OTSYS_SLEEP(10);
@@ -551,6 +556,7 @@ void Protocol76::checkCreatureAsKnown(unsigned long id, bool &known, unsigned lo
 // Parse methods
 void Protocol76::parseLogout(NetworkMessage &msg)
 {
+	if(player->huntInstance) g_hunts.leave(player, "Hunt ended");
 	if(player->inFightTicks >=1000 && player->isRemoved == false){
 		sendCancel("You may not logout during or immediately after a fight!");
 		return;

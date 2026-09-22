@@ -66,6 +66,7 @@ Player::Player(const std::string& name, Protocol *p) :
 Creature()
 {
 	client     = p;
+	huntInstance = 0;
 #ifdef YUR_BUILTIN_AAC
 	if (client)
 #endif //YUR_BUILTIN_AAC

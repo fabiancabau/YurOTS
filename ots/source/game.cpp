@@ -46,6 +46,7 @@ using namespace std;
 #include "monster.h"
 #include "npc.h"
 #include "game.h"
+#include "hunts.h"
 #include "tile.h"
 
 #include "spells.h"
@@ -546,6 +547,7 @@ void GameState::onAttackedCreature(Tile* tile, Creature *attacker, Creature* att
 			attackedplayer->onThingDisappear(attackedplayer,stackpos);
 			attackedplayer->die();        //handles exp/skills/maglevel loss
 		}
+		g_hunts.onKilled(attackedCreature, lootcontainer);
 		//remove creature
 		game->removeCreature(attackedCreature);
 		// Update attackedCreature pos because contains
@@ -984,6 +986,7 @@ bool Game::placeCreature(Position &pos, Creature* c
 						 )
 {
 	OTSYS_THREAD_LOCK_CLASS lockClass(gameLock, "Game::placeCreature()");
+	if(dynamic_cast<Player*>(c) && !g_hunts.canTravel(c,c->pos,pos))return false;
 	bool success = false;
 	Player *p = dynamic_cast<Player*>(c);
 
@@ -1056,6 +1059,7 @@ bool Game::removeCreature(Creature* c)
 	listCreature.removeList(c->getID());
 	c->removeList();
 	c->isRemoved = true;
+	g_hunts.onRemoved(c);
 
 	for(std::list<Creature*>::iterator cit = c->summons.begin(); cit != c->summons.end(); ++cit) {
 		removeCreature(*cit);
@@ -2501,8 +2505,11 @@ void Game::thingMoveInternal(Creature *creature, unsigned short from_x, unsigned
 				//<< std::endl;
 #endif
 
-	if (!thing)
+	if (!thing) return;
+	if(!g_hunts.canTravel(dynamic_cast<Creature*>(thing), thing->pos, Position(to_x,to_y,to_z))) {
+		if(Player* p=dynamic_cast<Player*>(creature)){p->sendCancel("Use Leave hunt to return to the world.");p->sendCancelWalk();}
 		return;
+	}
 
 	Item* item = dynamic_cast<Item*>(thing);
 	Creature* creatureMoving = dynamic_cast<Creature*>(thing);
@@ -2930,6 +2937,7 @@ void Game::teleport(Thing *thing, const Position& newPos) {
 		return;
 
 	OTSYS_THREAD_LOCK_CLASS lockClass(gameLock, "Game::teleport()");
+	if(!g_hunts.canTravel(dynamic_cast<Creature*>(thing), thing->pos, newPos)) return;
 
 	//Tile *toTile = getTile( newPos.x, newPos.y, newPos.z );
 	Tile *toTile = map->getTile(newPos);
@@ -4716,6 +4724,7 @@ void Game::playerSetAttackedCreature(Player* player, unsigned long creatureid)
 		attackedCreature = getCreatureByID(creatureid);
 	}
 
+	if(attackedCreature && !g_hunts.canTravel(player,player->pos,attackedCreature->pos))attackedCreature=NULL;
 	Player* attackedPlayer = dynamic_cast<Player*>(attackedCreature);
 	bool pvpArena = false, rook = false, attackedIsSummon = false;
 

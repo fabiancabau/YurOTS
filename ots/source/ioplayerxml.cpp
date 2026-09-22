@@ -763,10 +763,11 @@ bool IOPlayerXML::savePlayer(Player* player){
 	sb << player->banned;  xmlSetProp(root, (const xmlChar*) "banned", (const xmlChar*)sb.str().c_str()); sb.str("");
 #endif //TLM_SKULLS_PARTY
 
+	const Position savedPosition = player->huntInstance && player->health > 0 ? player->huntReturn : player->pos;
 	pn = xmlNewNode(NULL,(const xmlChar*)"spawn");
-	sb << player->pos.x;    xmlSetProp(pn, (const xmlChar*) "x", (const xmlChar*)sb.str().c_str());        sb.str("");
-	sb << player->pos.y;  	xmlSetProp(pn, (const xmlChar*) "y", (const xmlChar*)sb.str().c_str());        sb.str("");
-	sb << player->pos.z; 	xmlSetProp(pn, (const xmlChar*) "z", (const xmlChar*)sb.str().c_str());	       sb.str("");
+	sb << savedPosition.x;    xmlSetProp(pn, (const xmlChar*) "x", (const xmlChar*)sb.str().c_str());        sb.str("");
+	sb << savedPosition.y;  	xmlSetProp(pn, (const xmlChar*) "y", (const xmlChar*)sb.str().c_str());        sb.str("");
+	sb << savedPosition.z; 	xmlSetProp(pn, (const xmlChar*) "z", (const xmlChar*)sb.str().c_str());	       sb.str("");
 	xmlAddChild(root, pn);
 
 	pn = xmlNewNode(NULL,(const xmlChar*)"temple");

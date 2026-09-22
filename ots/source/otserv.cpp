@@ -30,6 +30,7 @@
 #include "otsystem.h"
 #include "networkmessage.h"
 #include "protocol76.h"
+#include "hunts.h"
 
 #include <stdlib.h>
 #include <time.h>
@@ -789,7 +790,7 @@ int main(int argc, char *argv[])
 	std::cout << ":: Global IP address:     ";
 	std::string ip;
 
-	if(argc > 1)
+	if(argc > 1 && std::string(argv[1]) != "--validate-hunts")
 		ip = argv[1];
 	else
 		ip = g_config.getGlobalString("ip", "127.0.0.1");
@@ -809,6 +810,7 @@ int main(int argc, char *argv[])
 	IpNetMask.first  = inet_addr(ip.c_str());
 	IpNetMask.second = 0;
 	serverIPs.push_back(IpNetMask);
+	if(argc > 1 && std::string(argv[1]) == "--validate-hunts") std::_Exit(g_hunts.validateCatalog() ? 0 : 1);
 	std::cout << ":: Starting Server... ";
 
 	Status* status = Status::instance();

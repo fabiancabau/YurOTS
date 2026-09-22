@@ -10,4 +10,4 @@ for file in data/npc/*.xml; do
   lower=$(printf '%s' "$file" | tr '[:upper:]' '[:lower:]')
   if [ "$file" != "$lower" ] && [ ! -e "$lower" ]; then cp "$file" "$lower"; fi
 done
-exec yurots
+exec yurots "$@"

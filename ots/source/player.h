@@ -130,6 +130,8 @@ public:
 	void kickPlayer();
 
 	bool addItem(Item* item, bool test = false);
+	unsigned huntInstance;
+	Position huntReturn;
 	bool internalAddItemContainer(Container *container,Item* item);
 
 	freeslot_t getFreeSlot(Container **container,unsigned char &slot, const Item* item);
@@ -662,6 +664,7 @@ protected:
 	friend class Map;
 	friend class IOPlayerXML;
 	friend class IOPlayerSQL;
+	friend class HuntManager;
 };
 
 

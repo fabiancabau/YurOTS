@@ -33,6 +33,10 @@ npm start
 
 The client is a Git submodule pointing to [fabiancabau/html5-tibia-client](https://github.com/fabiancabau/html5-tibia-client), branch `codex/yurots-76`. Commit client changes in that repository before updating the submodule reference here.
 
+## Auto-hunts
+
+Use the crossed-swords **Organize hunt** button to browse 247 source areas and start a private party instance with server-controlled hunting. See [HUNTS.md](HUNTS.md) for controls, isolation, respawns, loot and verification.
+
 ## Controls
 
 - Arrow keys or numpad: walk; Ctrl + arrows: turn; click a reachable tile: walk there.
