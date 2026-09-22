@@ -41,3 +41,16 @@ User request: make an interface like the supplied Huntera screenshot.
 - Final source validation: 11 protocol/framing/viewport tests pass; checked diffs are whitespace-clean.
 - Client HUD commit fa6e2d5 pushed. Updated localhost:8080 through Compose and ran the established browser action/screenshot loop against that exact deployment: real login, backpack, rendered game and clean logout passed. Final screenshot inspected; no browser error artifact was produced.
 - Refreshed the existing in-app preview to the new interface. Development preview8081 can be stopped; Compose8080 remains the delivered app.
+
+
+## Rooftop movement and stair rendering repair
+
+User reported sprite clipping and a brief apparent underground step on the roof beside the stairs.
+
+- Reproduced on the real map at 141,73,6 with an isolated Render Verification character. User's existing Yurez The Next session was left alone.
+- Before: leftward animation stayed at z=6 but later source-tile ground covered the actor; visible outfit pixels dropped to 164 vs 376 at rest. Floor changes also reused a cached walk and left the camera at 141,74 while authoritative positions were 141,75,7 and 141,73,6.
+- Fix: compose each floor's ground/borders before its scenery/creatures; depth-sort scenery and walking creatures by visual foot position; clear old walks on full-map updates/appearance; ignore stale/wrong-floor interpolation for camera/actors.
+- After: same real left step keeps 356–376 outfit pixels visible throughout; camera matches server positions immediately on both stair directions. Screenshots inspected in client/artifacts/rendering.
+- Added raster-order and interpolation regressions covering all eight directions, foreground walls, upper-floor occlusion and map-replacement reset.
+- Seventeen focused tests pass, including in a clean exported client snapshot without the separate in-progress movement-queue edits.
+- Rendering commit 4064cb7 pushed. Updated only served render files and floor-reset handling in the running localhost:8080 client, preserving active game connections and concurrent movement work. Exact live rooftop/stair reproduction passed after the update; user can reload when ready.
