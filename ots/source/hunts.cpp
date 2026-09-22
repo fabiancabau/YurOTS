@@ -11,6 +11,7 @@
 #include <boost/bind.hpp>
 #include <libxml/parser.h>
 #include <limits>
+#include <memory>
 #include <queue>
 #include <sstream>
 
@@ -965,6 +966,7 @@ bool HuntManager::validateCatalog() {
     OTSYS_THREAD_LOCK_CLASS lock(game->gameLock, "HuntManager::validateCatalog");
     unsigned failed = 0;
     size_t tiles = 0;
+    bool combatChecked = false;
     for (const auto &def : catalog) {
         Room room = {};
         bool ok = create(room, def);
@@ -972,6 +974,34 @@ bool HuntManager::validateCatalog() {
         if (!ok) {
             failed++;
             std::cout << "HUNT INVALID " << def.id << " " << def.name << std::endl;
+        }
+        if (ok && !combatChecked) {
+            // Exercise the actual spell entry point with a harmless effect. A GM-level
+            // caster must still be unable to cast into/out of another private map.
+            room.id = nextRoom++;
+            rooms[room.id] = room;
+            std::unique_ptr<Monster> ownedCaster(Monster::createMonster(def.primary, game));
+            Monster &caster = *ownedCaster;
+            caster.access = g_config.ACCESS_PROTECT;
+            MagicEffectClass effect;
+            const Position outside(0, 0, room.entry.z);
+            caster.pos = outside;
+            const bool outsideBlocked = !game->creatureCastSpell(&caster, room.entry, effect) &&
+                                        !game->creatureOnPrepareAttack(&caster, room.entry);
+            caster.pos = room.entry;
+            const bool insideAllowed = game->creatureCastSpell(&caster, room.entry, effect) &&
+                                       game->creatureOnPrepareAttack(&caster, room.entry);
+            const bool exitBlocked = !game->creatureCastSpell(&caster, outside, effect) &&
+                                     !game->creatureOnPrepareAttack(&caster, outside);
+            const Position otherCell(room.entry.x + CELL, room.entry.y, room.entry.z);
+            const bool otherBlocked = !game->creatureCastSpell(&caster, otherCell, effect) &&
+                                      !game->creatureOnPrepareAttack(&caster, otherCell);
+            combatChecked = outsideBlocked && insideAllowed && exitBlocked && otherBlocked;
+            if (!combatChecked)
+                failed++;
+            std::cout << "HUNT COMBAT ISOLATION " << (combatChecked ? "passed" : "FAILED")
+                      << std::endl;
+            rooms.erase(room.id);
         }
         cleanup(room);
     }

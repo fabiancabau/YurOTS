@@ -19,7 +19,7 @@ The session controls show actual kills, XP gained, collected item count, party-m
 
 Instances occupy non-overlapping reserved map cells starting at 4096,4096; up to64 instances can exist at once. The selected region is copied with its terrain/scenery. Original creatures, houses, external portals, quest IDs, container contents and pickupable map rewards are not copied. Monster spawn points are normalized onto reachable terrain within that copied region; isolated platforms or blocked lava spawns use a connected nearby floor from the same copy.
 
-Travel into an instance requires membership; ordinary walking/teleports cannot cross its boundary. Outsiders cannot target its creatures through the extended API. Normal saves write each participant's public-world return coordinate, so a crash or restart cannot strand them in a discarded map copy. The last member leaving schedules monster and tile cleanup after one second. Hunt instances and hunt history are intentionally temporary; ordinary character XP/inventory persistence is unchanged.
+Travel into an instance requires membership; ordinary walking/teleports cannot cross its boundary. Targeted attacks, spells, runes and area effects also respect that boundary, including healing and game-master casts. Normal saves write each participant's public-world return coordinate, so a crash or restart cannot strand them in a discarded map copy. The last member leaving schedules monster and tile cleanup after one second. Hunt instances and hunt history are intentionally temporary; ordinary character XP/inventory persistence is unchanged.
 
 ## Verification
 

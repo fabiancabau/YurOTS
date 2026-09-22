@@ -3228,6 +3228,9 @@ bool Game::creatureMakeMagic(Creature *creature, const Position& centerpos, cons
 {
 
 	OTSYS_THREAD_LOCK_CLASS lockClass(gameLock, "Game::creatureMakeMagic()");
+	// Apply the same instance boundary to every spell, including healing and conditions.
+	if(creature && !g_hunts.canTravel(creature, creature->pos, centerpos))
+		return false;
 
 #ifdef __DEBUG__
 	cout << "creatureMakeMagic: " << (creature ? creature->getName() : "No name") << ", x: " << centerpos.x << ", y: " << centerpos.y << ", z: " << centerpos.z << std::endl;
@@ -3257,6 +3260,8 @@ bool Game::creatureMakeMagic(Creature *creature, const Position& centerpos, cons
 
 	//Filter out the tiles we actually can work on
 	for(MagicAreaVec::iterator maIt = tmpMagicAreaVec.begin(); maIt != tmpMagicAreaVec.end(); ++maIt) {
+		if(!g_hunts.canTravel(creature, frompos, *maIt))
+			continue;
 		Tile *t = map->getTile(maIt->x, maIt->y, maIt->z);
 		if(t && (!creature || (creature->access >= g_config.ACCESS_PROTECT || !me->offensive || !t->isPz()) ) ) {
 			if((t->isBlocking(BLOCK_PROJECTILE) == RET_NOERROR) && (me->isIndirect() ||
@@ -3490,6 +3495,8 @@ bool Game::creatureThrowRune(Creature *creature, const Position& centerpos, cons
 bool Game::creatureOnPrepareAttack(Creature *creature, Position pos)
 {
   if(creature){
+		if(!g_hunts.canTravel(creature, creature->pos, pos))
+			return false;
 		Player* player = dynamic_cast<Player*>(creature);
 
 		//Tile* tile = (Tile*)getTile(creature->pos.x, creature->pos.y, creature->pos.z);
