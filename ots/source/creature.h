@@ -212,6 +212,7 @@ public:
 
 	int64_t health, healthmax;
 	uint64_t lastmove;
+	int lastStepCost;
 
 #ifdef TJ_MONSTER_BLOOD
 	int bloodcolor;
@@ -221,6 +222,7 @@ public:
 
 	long long getSleepTicks() const;
 	int getStepDuration() const;
+	void recordStep(const Position& from);
 
 	unsigned short getSpeed() const {
 		return speed;

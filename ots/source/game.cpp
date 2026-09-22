@@ -46,6 +46,7 @@ using namespace std;
 #include "monster.h"
 #include "npc.h"
 #include "game.h"
+#include "hunts.h"
 #include "tile.h"
 
 #include "spells.h"
@@ -546,6 +547,7 @@ void GameState::onAttackedCreature(Tile* tile, Creature *attacker, Creature* att
 			attackedplayer->onThingDisappear(attackedplayer,stackpos);
 			attackedplayer->die();        //handles exp/skills/maglevel loss
 		}
+		g_hunts.onKilled(attackedCreature, lootcontainer);
 		//remove creature
 		game->removeCreature(attackedCreature);
 		// Update attackedCreature pos because contains
@@ -984,6 +986,7 @@ bool Game::placeCreature(Position &pos, Creature* c
 						 )
 {
 	OTSYS_THREAD_LOCK_CLASS lockClass(gameLock, "Game::placeCreature()");
+	if(dynamic_cast<Player*>(c) && !g_hunts.canTravel(c,c->pos,pos))return false;
 	bool success = false;
 	Player *p = dynamic_cast<Player*>(c);
 
@@ -1056,6 +1059,7 @@ bool Game::removeCreature(Creature* c)
 	listCreature.removeList(c->getID());
 	c->removeList();
 	c->isRemoved = true;
+	g_hunts.onRemoved(c);
 
 	for(std::list<Creature*>::iterator cit = c->summons.begin(); cit != c->summons.end(); ++cit) {
 		removeCreature(*cit);
@@ -1103,8 +1107,11 @@ void Game::thingMove(Creature *creature, Thing *thing,
 
 	if (fromTile)
 	{
+		const Position from = thing->pos;
 		int oldstackpos = fromTile->getThingStackPos(thing);
 		thingMoveInternal(creature, thing->pos.x, thing->pos.y, thing->pos.z, oldstackpos, 0, to_x, to_y, to_z, count);
+		if(creature == thing && dynamic_cast<Player*>(creature))
+			creature->recordStep(from);
 	}
 }
 
@@ -1127,7 +1134,10 @@ void Game::thingMove(Creature *creature, unsigned short from_x, unsigned short f
 	if(item && (item->getID() != itemid || item != fromTile->getTopDownItem()))
 		return;
 
+	const Position from = thing->pos;
 	thingMoveInternal(creature, from_x, from_y, from_z, stackPos, itemid, to_x, to_y, to_z, count);
+	if(creature == thing && dynamic_cast<Player*>(creature))
+		creature->recordStep(from);
 }
 
 //container/inventory to container/inventory
@@ -2495,8 +2505,11 @@ void Game::thingMoveInternal(Creature *creature, unsigned short from_x, unsigned
 				//<< std::endl;
 #endif
 
-	if (!thing)
+	if (!thing) return;
+	if(!g_hunts.canTravel(dynamic_cast<Creature*>(thing), thing->pos, Position(to_x,to_y,to_z))) {
+		if(Player* p=dynamic_cast<Player*>(creature)){p->sendCancel("Use Leave hunt to return to the world.");p->sendCancelWalk();}
 		return;
+	}
 
 	Item* item = dynamic_cast<Item*>(thing);
 	Creature* creatureMoving = dynamic_cast<Creature*>(thing);
@@ -2924,6 +2937,7 @@ void Game::teleport(Thing *thing, const Position& newPos) {
 		return;
 
 	OTSYS_THREAD_LOCK_CLASS lockClass(gameLock, "Game::teleport()");
+	if(!g_hunts.canTravel(dynamic_cast<Creature*>(thing), thing->pos, newPos)) return;
 
 	//Tile *toTile = getTile( newPos.x, newPos.y, newPos.z );
 	Tile *toTile = map->getTile(newPos);
@@ -3214,6 +3228,9 @@ bool Game::creatureMakeMagic(Creature *creature, const Position& centerpos, cons
 {
 
 	OTSYS_THREAD_LOCK_CLASS lockClass(gameLock, "Game::creatureMakeMagic()");
+	// Apply the same instance boundary to every spell, including healing and conditions.
+	if(creature && !g_hunts.canTravel(creature, creature->pos, centerpos))
+		return false;
 
 #ifdef __DEBUG__
 	cout << "creatureMakeMagic: " << (creature ? creature->getName() : "No name") << ", x: " << centerpos.x << ", y: " << centerpos.y << ", z: " << centerpos.z << std::endl;
@@ -3243,6 +3260,8 @@ bool Game::creatureMakeMagic(Creature *creature, const Position& centerpos, cons
 
 	//Filter out the tiles we actually can work on
 	for(MagicAreaVec::iterator maIt = tmpMagicAreaVec.begin(); maIt != tmpMagicAreaVec.end(); ++maIt) {
+		if(!g_hunts.canTravel(creature, frompos, *maIt))
+			continue;
 		Tile *t = map->getTile(maIt->x, maIt->y, maIt->z);
 		if(t && (!creature || (creature->access >= g_config.ACCESS_PROTECT || !me->offensive || !t->isPz()) ) ) {
 			if((t->isBlocking(BLOCK_PROJECTILE) == RET_NOERROR) && (me->isIndirect() ||
@@ -3476,6 +3495,8 @@ bool Game::creatureThrowRune(Creature *creature, const Position& centerpos, cons
 bool Game::creatureOnPrepareAttack(Creature *creature, Position pos)
 {
   if(creature){
+		if(!g_hunts.canTravel(creature, creature->pos, pos))
+			return false;
 		Player* player = dynamic_cast<Player*>(creature);
 
 		//Tile* tile = (Tile*)getTile(creature->pos.x, creature->pos.y, creature->pos.z);
@@ -3720,6 +3741,10 @@ void Game::checkPlayerWalk(unsigned long id)
 
 	if(!player)
 		return;
+	if(player->pathlist.empty()) {
+		player->eventAutoWalk = 0;
+		return;
+	}
 
 	Position pos = player->pos;
 	Direction dir = player->pathlist.front();
@@ -3762,9 +3787,14 @@ void Game::checkPlayerWalk(unsigned long id)
 #endif
 */
 
-	player->lastmove = OTSYS_TIME();
+	const Position from = player->pos;
 	this->thingMove(player, player, pos.x, pos.y, pos.z, 1);
 	flushSendBuffers();
+	if(player->pos == from) {
+		player->pathlist.clear();
+		player->eventAutoWalk = 0;
+		return;
+	}
 
 	if(!player->pathlist.empty()) {
 		int ticks = (int)player->getSleepTicks();
@@ -4270,11 +4300,14 @@ void Game::playerAutoWalk(Player* player, std::list<Direction>& path)
 	OTSYS_THREAD_LOCK_CLASS lockClass(gameLock, "Game::playerAutoWalk()");
 
 	stopEvent(player->eventAutoWalk);
+	player->eventAutoWalk = 0;
 
 	if(player->isRemoved)
 		return;
 
 	player->pathlist = path;
+	if(path.empty())
+		return;
 	int ticks = (int)player->getSleepTicks();
 /*
 #ifdef __DEBUG__
@@ -4698,6 +4731,7 @@ void Game::playerSetAttackedCreature(Player* player, unsigned long creatureid)
 		attackedCreature = getCreatureByID(creatureid);
 	}
 
+	if(attackedCreature && !g_hunts.canTravel(player,player->pos,attackedCreature->pos))attackedCreature=NULL;
 	Player* attackedPlayer = dynamic_cast<Player*>(attackedCreature);
 	bool pvpArena = false, rook = false, attackedIsSummon = false;
 

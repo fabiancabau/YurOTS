@@ -241,51 +241,27 @@ std::string tickstr(int ticks)
 
 std::string str(int32_t value)
 {
-	char buf[64];
-#ifdef USING_VISUAL_2005
-	if (_ltoa_s(value, buf, sizeof(buf), 10) == 0)
-		return buf;
-	else
-		return "";
-#else
-	return ltoa(value, buf, 10);
-#endif //USING_VISUAL_2005
+	std::ostringstream out;
+	out << value;
+	return out.str();
 }
 
 std::string str(uint32_t value)
 {
-	char buf[64];
-#ifdef USING_VISUAL_2005
-	if (_ultoa_s(value, buf, sizeof(buf), 10) == 0)
-		return buf;
-	else
-		return "";
-#else
-	return _ultoa(value, buf, 10);
-#endif //USING_VISUAL_2005
+	std::ostringstream out;
+	out << value;
+	return out.str();
 }
 
 std::string str(int64_t value)
 {
-	char buf[128];
-#ifdef USING_VISUAL_2005
-	if (_i64toa_s(value, buf, sizeof(buf), 10) == 0)
-		return buf;
-	else
-		return "";
-#else
-	return _i64toa(value, buf, 10);
-#endif //USING_VISUAL_2005
+	std::ostringstream out;
+	out << value;
+	return out.str();
 }
 std::string str(uint64_t value)
 {
-	char buf[128];
-#ifdef USING_VISUAL_2005
-	if (_i64toa_s(value, buf, sizeof(buf), 10) == 0)
-		return buf;
-	else
-		return "";
-#else
-	return _ui64toa(value, buf, 10);
-#endif //USING_VISUAL_2005
+	std::ostringstream out;
+	out << value;
+	return out.str();
 }

@@ -1,0 +1,4 @@
+[submodule "client"]
+	path = client
+	url = https://github.com/fabiancabau/html5-tibia-client.git
+	branch = codex/yurots-76

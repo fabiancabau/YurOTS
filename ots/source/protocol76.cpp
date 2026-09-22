@@ -29,6 +29,7 @@
 #include <limits>
 #include "networkmessage.h"
 #include "protocol76.h"
+#include "hunts.h"
 
 #include "items.h"
 
@@ -97,6 +98,7 @@ void Protocol76::ReceiveLoop()
 			parsePacket(msg);
 		}
 
+		if(player->huntInstance && !player->isRemoved) g_hunts.leave(player, "Connection closed");
 		if(s){
 			closesocket(s);
 			s = 0;
@@ -124,6 +126,9 @@ void Protocol76::parsePacket(NetworkMessage &msg)
 		return;
 
 	uint8_t recvbyte = msg.GetByte();
+	if(recvbyte == 0xF0) { if(!player->isRemoved) g_hunts.request(player, msg); return; }
+	if ((recvbyte >= 0x64 && recvbyte <= 0x72) || recvbyte == 0xA1 || recvbyte == 0xBE)
+		g_hunts.manualInput(player);
 	//a dead player can not performs actions
 	if (player->isRemoved == true && recvbyte != 0x14) {
 		OTSYS_SLEEP(10);
@@ -551,6 +556,7 @@ void Protocol76::checkCreatureAsKnown(unsigned long id, bool &known, unsigned lo
 // Parse methods
 void Protocol76::parseLogout(NetworkMessage &msg)
 {
+	if(player->huntInstance) g_hunts.leave(player, "Hunt ended");
 	if(player->inFightTicks >=1000 && player->isRemoved == false){
 		sendCancel("You may not logout during or immediately after a fight!");
 		return;
@@ -748,7 +754,6 @@ void Protocol76::parseMoveNorthEast(NetworkMessage &msg)
 	}
 
 	this->sleepTillMove();
-	this->sleepTillMove();
 
 	game->thingMove(player, player,
 		(player->pos.x+1), (player->pos.y-1), player->pos.z, 1);
@@ -764,7 +769,6 @@ void Protocol76::parseMoveSouthEast(NetworkMessage &msg)
 		player->sendCancelWalk();
 	}
 
-	this->sleepTillMove();
 	this->sleepTillMove();
 
 	game->thingMove(player, player,
@@ -782,7 +786,6 @@ void Protocol76::parseMoveSouthWest(NetworkMessage &msg)
 	}
 
 	this->sleepTillMove();
-	this->sleepTillMove();
 
 	game->thingMove(player, player,
 		(player->pos.x-1), (player->pos.y+1), player->pos.z, 1);
@@ -798,7 +801,6 @@ void Protocol76::parseMoveNorthWest(NetworkMessage &msg)
 		player->sendCancelWalk();
 	}
 
-	this->sleepTillMove();
 	this->sleepTillMove();
 
 	game->thingMove(player, player,
@@ -2713,7 +2715,7 @@ void Protocol76::AddCreature(NetworkMessage &msg,const Creature *creature, bool 
 		msg.AddString(creature->getName());
 	}
 
-	msg.AddByte(std::max(1LL, creature->health*100/creature->healthmax));
+	msg.AddByte(std::max<__int64>(1, creature->health*100/creature->healthmax));
 
 	msg.AddByte((unsigned char)creature->getDirection());
 
@@ -2889,7 +2891,7 @@ void Protocol76::AddCreatureHealth(NetworkMessage &msg,const Creature *creature)
 {
 	msg.AddByte(0x8C);
 	msg.AddU32(creature->getID());
-	msg.AddByte(std::max(1LL, creature->health*100/creature->healthmax));
+	msg.AddByte(std::max<__int64>(1, creature->health*100/creature->healthmax));
 }
 
 void Protocol76::AddRemoveThing(NetworkMessage &msg, const Position &pos,unsigned char stackpos){

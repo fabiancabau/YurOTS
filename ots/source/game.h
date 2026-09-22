@@ -515,6 +515,7 @@ protected:
 	friend class SpawnManager;
 	friend class ActionScript;
 	friend class Actions;
+	friend class HuntManager;
 };
 
 template<class ArgType>

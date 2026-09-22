@@ -341,11 +341,7 @@ NpcScript::NpcScript(std::string scriptname, Npc* npc){
 	if(scriptname == "")
 		return;
 	luaState = lua_open();
-	luaopen_loadlib(luaState);
-	luaopen_base(luaState);
-	luaopen_math(luaState);
-	luaopen_string(luaState);
-	luaopen_io(luaState);
+	luaL_openlibs(luaState);
 
 	std::string datadir = g_config.getGlobalString("datadir");
     lua_dofile(luaState, std::string(datadir + "npc/scripts/lib/npc.lua").c_str());
@@ -364,7 +360,8 @@ NpcScript::NpcScript(std::string scriptname, Npc* npc){
 	lua_dofile(luaState, scriptname.c_str());
 	this->loaded=true;
 	this->npc=npc;
-	this->setGlobalNumber("addressOfNpc", (int)npc);
+	lua_pushlightuserdata(luaState, npc);
+	lua_setglobal(luaState, "addressOfNpc");
 	this->registerFunctions();
 }
 
@@ -497,9 +494,8 @@ int NpcScript::registerFunctions()
 
 Npc* NpcScript::getNpc(lua_State *L){
 	lua_getglobal(L, "addressOfNpc");
-	int val = (int)lua_tonumber(L, -1);
-	lua_pop(L,1);
-	Npc* mynpc = (Npc*)val;
+	Npc* mynpc = static_cast<Npc*>(lua_touserdata(L, -1));
+	lua_pop(L, 1);
 
 	if(!mynpc){
 		return 0;

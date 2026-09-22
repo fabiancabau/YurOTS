@@ -287,5 +287,6 @@ class Map {
 private:
 	std::string spawnfile;
 
+	friend class HuntManager;
 };
 #endif

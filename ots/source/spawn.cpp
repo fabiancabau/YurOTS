@@ -19,6 +19,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "spawn.h"
+#include "hunts.h"
 #include "game.h"
 #include "player.h"
 #include "npc.h"
@@ -217,6 +218,7 @@ bool SpawnManager::loadSpawnsXML(std::string filename)
 		}
 
 		xmlFreeDoc(doc);
+		g_hunts.load(game, filename);
 		return true;
 	}
 
