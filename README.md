@@ -39,6 +39,8 @@ The client is a Git submodule pointing to [fabiancabau/html5-tibia-client](https
 - Right click: look, use, use with, attack, trade or party actions.
 - Double click a container: open it. Drag items between equipment, containers and the map.
 - Enter: chat. Type spell words in Say. Private messages use `@Name@message`.
+- F1–F8: spell shortcuts; right click a shortcut to change its words.
+- Drag window title bars to reposition them; use the top toolbar to show/hide panels. Layout is saved in the browser.
 - Escape: cancel targeting and walking. F: full screen.
 
 ## Verify

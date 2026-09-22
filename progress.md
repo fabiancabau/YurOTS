@@ -22,3 +22,22 @@ Original prompt: Integrate this YurOTS server with https://github.com/Inconcessu
 - Local client: http://127.0.0.1:8080. Requested its browser panel in Codex.
 - Scope limitations: test coverage does not claim full native-client feature parity or completed trade acceptance. The original Forby account-creation API is not used; YurOTS accounts remain authoritative.
 - No further implementation work is required for the verified playable integration. Review/publish state is recorded in the task response.
+
+
+## Huntera-inspired interface redesign
+
+User request: make an interface like the supplied Huntera screenshot.
+
+- Implementing full-viewport square-tile game view, dark beveled floating panels, compact character/nav topbar, paper-doll inventory, bottom vitals/actionbar, real session XP and editable spell hotkeys.
+- Source screenshot is the visual reference; server remains authoritative.
+- Added aspect/coordinate regression checks; 11 tests pass including existing native protocol coverage.
+- Parallel work: HTML/CSS shell, isolated HUD behavior module, browser checks. Root integrates renderer and game actions.
+- Initial live visual pass completed using the develop-web-game runner. Fixed half-pixel camera seams by using even buffer dimensions and pixel-aligned draw positions.
+- Window controls, inventory, spell editor and keyboard focus checks are running against real YurOTS. Existing sample character inherited a combat lock, so a separate local HUD Verification character was created at the temple for repeatable reload/logout tests; source data was not modified.
+- Session UI displays measured time/XP and actual level/progress. No invented player count, currency, cooldown or kill totals.
+
+- HUD verification passed against the isolated test character: native login, logout/relogin, backpack, drag/visibility persistence, hotkey editing/persistence, Enter focus behavior, suppressed hotkeys while typing/dialogs, real F1 healing, keyboard and pointer walking. No browser runtime errors.
+- Responsive screenshots inspected at 1440x900, 1920x1080, 1000x760, and 390x844. Fixed compact Battle/Friends overlap, mobile overflow, panel scaling, and restoring desktop positions onto smaller windows. Narrow screens now open one panel at a time and restore desktop state on return.
+- Final source validation: 11 protocol/framing/viewport tests pass; checked diffs are whitespace-clean.
+- Client HUD commit fa6e2d5 pushed. Updated localhost:8080 through Compose and ran the established browser action/screenshot loop against that exact deployment: real login, backpack, rendered game and clean logout passed. Final screenshot inspected; no browser error artifact was produced.
+- Refreshed the existing in-app preview to the new interface. Development preview8081 can be stopped; Compose8080 remains the delivered app.
